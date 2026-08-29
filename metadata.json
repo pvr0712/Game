@@ -1,0 +1,6 @@
+{
+  "name": "Harry Potter: Hogwarts Pixel Escape",
+  "description": "A 2D pixel-art platformer where Harry Potter leaps across Hogwarts castle platforms, escapes Lord Voldemort and his sinister laugh, receives extra HP blessings from Professor Dumbledore, dodges swooping owls, and collects golden coins up to 100 points.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
