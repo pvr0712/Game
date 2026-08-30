@@ -45,15 +45,29 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
         {/* Content */}
         <div className="space-y-3 text-[9px] sm:text-[10px] leading-relaxed relative z-10">
           
-          {/* Goal */}
+          {/* Goal & 3 Levels */}
           <div className="bg-[#eedab0] p-2.5 rounded border border-[#8b4513]/60 shadow-xs">
             <div className="flex items-center gap-1.5 text-[#3a1b06] font-bold mb-1">
               <Award className="w-3.5 h-3.5 text-[#8b4513]" />
-              <span>THE GOAL: 100 GALLEON COINS</span>
+              <span>3 LEVELS & 100 PTS HOUSE CUP</span>
             </div>
-            <p className="text-[#4a280e]">
-              Collect golden Galleons (+1 point each) scattered across castle battlements. Reach 100 points to escape and win the Hogwarts House Cup!
+            <p className="text-[#4a280e] mb-1.5">
+              Collect golden Galleons (+1 pt) to progress through 3 exciting levels with increased owl challenge and rewards:
             </p>
+            <div className="space-y-1 text-[7.5px] sm:text-[8.5px]">
+              <div className="flex items-center justify-between bg-[#e2cc9b] px-1.5 py-0.5 rounded border border-[#8b4513]/30">
+                <span className="font-bold text-blue-900">LEVEL 1 (0-25 PTS):</span>
+                <span className="text-[#4a280e]">Castle Corridors</span>
+              </div>
+              <div className="flex items-center justify-between bg-[#e2cc9b] px-1.5 py-0.5 rounded border border-[#8b4513]/30">
+                <span className="font-bold text-purple-900">LEVEL 2 (25-50 PTS):</span>
+                <span className="text-[#4a280e]">High Spires & Dungeons</span>
+              </div>
+              <div className="flex items-center justify-between bg-[#e2cc9b] px-1.5 py-0.5 rounded border border-[#8b4513]/30">
+                <span className="font-bold text-amber-900">LEVEL 3 (50-100 PTS):</span>
+                <span className="font-bold text-[#8b4513]">House Cup Grand Finale 🏆</span>
+              </div>
+            </div>
           </div>
 
           {/* Controls */}

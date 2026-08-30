@@ -213,17 +213,26 @@ export class PixelRenderer {
     this.ctx.arc(moonX, moonY, 65, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Crescent Moon shape in pixel art
-    for (let dy = -moonR; dy <= moonR; dy += 2) {
-      for (let dx = -moonR; dx <= moonR; dx += 2) {
-        const d1 = Math.sqrt(dx * dx + dy * dy);
-        const d2 = Math.sqrt((dx + 10) * (dx + 10) + (dy - 4) * (dy - 4));
-        if (d1 <= moonR && d2 > moonR - 4) {
-          const isHighlight = d1 > moonR - 4;
-          this.pRect(moonX + dx, moonY + dy, 2, 2, isHighlight ? '#fecdd3' : '#f87171');
-        }
-      }
-    }
+    // Crescent Moon shape in pixel art - clean high-performance rendering
+    this.ctx.save();
+    this.ctx.fillStyle = '#f87171';
+    this.ctx.beginPath();
+    this.ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Cutout to form crescent
+    this.ctx.fillStyle = '#120520';
+    this.ctx.beginPath();
+    this.ctx.arc(moonX + 10, moonY - 4, moonR - 2, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Glowing rim
+    this.ctx.strokeStyle = '#fecdd3';
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.arc(moonX, moonY, moonR, Math.PI * 0.4, Math.PI * 1.6);
+    this.ctx.stroke();
+    this.ctx.restore();
 
     // Distant Far Forest Silhouette (Parallax Layer 0)
     const farOffsetX = -(cameraX * 0.12);
@@ -384,28 +393,22 @@ export class PixelRenderer {
     this.ctx.arc(moonX, moonY, moonRadius + 10, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Moon pixelated disk
-    for (let dy = -moonRadius; dy <= moonRadius; dy += 2) {
-      for (let dx = -moonRadius; dx <= moonRadius; dx += 2) {
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist <= moonRadius) {
-          // Crater textures
-          const isCrater =
-            (dx > -12 && dx < -2 && dy > -8 && dy < 4) ||
-            (dx > 6 && dx < 18 && dy > 4 && dy < 16) ||
-            (dx > -4 && dx < 8 && dy > -20 && dy < -10);
+    // Moon pixelated disk - efficient rendering
+    this.ctx.fillStyle = '#fef08a';
+    this.ctx.beginPath();
+    this.ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+    this.ctx.fill();
 
-          let color = '#fef08a';
-          if (dist > moonRadius - 4) {
-            color = '#fef9c3';
-          }
-          if (isCrater) {
-            color = '#eab308';
-          }
-          this.pRect(moonX + dx, moonY + dy, 2, 2, color);
-        }
-      }
-    }
+    // Moon crater details
+    this.pRect(moonX - 10, moonY - 6, 8, 8, '#eab308');
+    this.pRect(moonX + 6, moonY + 4, 10, 10, '#eab308');
+    this.pRect(moonX - 2, moonY - 16, 8, 6, '#eab308');
+    this.pRect(moonX + 4, moonY - 8, 4, 4, '#ca8a04');
+
+    // Highlight rim
+    this.ctx.strokeStyle = '#fef9c3';
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
 
     // Draw Far Clouds (Parallax Layer 0)
     this.drawClouds(clouds.filter(c => c.layer === 0), cameraX * 0.1, '#1e293b', 0.45);
@@ -494,16 +497,21 @@ export class PixelRenderer {
     this.ctx.restore();
   }
 
-  // Draw Clouds
+  // Draw Clouds (Optimized)
   public drawClouds(clouds: Cloud[], offset: number, baseColor: string, alpha: number) {
     this.ctx.save();
     this.ctx.globalAlpha = alpha;
+    this.ctx.fillStyle = baseColor;
+    const canvasW = this.ctx.canvas ? this.ctx.canvas.width : 800;
 
     clouds.forEach(cloud => {
       const cx = cloud.x - offset;
       const cy = cloud.y;
       const cw = cloud.width;
       const ch = cloud.height;
+
+      // Offscreen culling
+      if (cx + cw < -50 || cx > canvasW + 50) return;
 
       // Draw layered pixel puff cloud
       const puffs = [
@@ -513,31 +521,30 @@ export class PixelRenderer {
         { dx: cw * 0.5, dy: ch * 0.5, r: ch * 0.4 },
       ];
 
-      this.ctx.fillStyle = baseColor;
       puffs.forEach(p => {
         const px = cx + p.dx;
         const py = cy + p.dy;
-        const radius = p.r;
-        for (let dy = -radius; dy <= radius; dy += 3) {
-          for (let dx = -radius; dx <= radius; dx += 3) {
-            if (dx * dx + dy * dy <= radius * radius) {
-              this.pRect(px + dx, py + dy, 3, 3, baseColor);
-            }
-          }
-        }
+        this.ctx.beginPath();
+        this.ctx.arc(px, py, p.r, 0, Math.PI * 2);
+        this.ctx.fill();
       });
     });
 
     this.ctx.restore();
   }
 
-  // Draw Platforms
+  // Draw Platforms (With Frustum Culling)
   public drawPlatforms(platforms: Platform[], cameraX: number, gameTime: number) {
+    const canvasW = this.ctx.canvas ? this.ctx.canvas.width : 800;
+
     platforms.forEach(p => {
       const px = p.x - cameraX;
       const py = p.y;
       const pw = p.width;
       const ph = p.height;
+
+      // Frustum culling: Skip platforms that are off-screen
+      if (px + pw < -60 || px > canvasW + 60) return;
 
       if (p.type === 'solid') {
         // Hogwarts Castle Stone Platform
@@ -613,8 +620,7 @@ export class PixelRenderer {
         }
       } else if (p.type === 'floating_rune') {
         // Floating Ancient Hogwarts Rune Platform
-        const bob = Math.sin(gameTime * 3 + p.x) * 3;
-        const curY = py + bob;
+        const curY = py;
 
         // Magic amethyst / cyan crystal base
         this.pRect(px, curY, pw, 3, '#c084fc');
@@ -647,14 +653,14 @@ export class PixelRenderer {
     const isFacingLeft = player.facing === 'LEFT';
     const character = player.character || 'harry';
 
-    // Invulnerability blink
+    this.ctx.save();
+
+    // Invulnerability smooth semi-transparent effect
     if (player.invulnerableTimer > 0) {
-      if (Math.floor(gameTime * 15) % 2 === 0) {
-        return; // Flash invisibly
-      }
+      const flashAlpha = (Math.floor(gameTime * 12) % 2 === 0) ? 0.4 : 0.85;
+      this.ctx.globalAlpha = flashAlpha;
     }
 
-    this.ctx.save();
     // Translate and flip if facing left
     if (isFacingLeft) {
       this.ctx.translate(px + player.width, py);
@@ -788,6 +794,8 @@ export class PixelRenderer {
   public drawEnemy(enemy: Enemy, cameraX: number, gameTime: number) {
     const ex = Math.floor(enemy.x - cameraX);
     const ey = Math.floor(enemy.y);
+    const canvasW = this.ctx.canvas ? this.ctx.canvas.width : 800;
+    if (ex < -50 || ex > canvasW + 50) return;
     const isFacingLeft = enemy.facing === 'LEFT';
 
     this.ctx.save();
@@ -897,6 +905,9 @@ export class PixelRenderer {
     if (dumbledore.collected) return;
 
     const dx = Math.floor(dumbledore.x - cameraX);
+    const canvasW = this.ctx.canvas ? this.ctx.canvas.width : 800;
+    if (dx < -60 || dx > canvasW + 60) return;
+
     const floatY = dumbledore.baseY + Math.sin(gameTime * 3.5 + dumbledore.floatingPhase) * (dumbledore.isInAir ? 7 : 3);
     const dy = Math.floor(floatY);
     const isFacingLeft = dumbledore.facing === 'LEFT';
@@ -1108,6 +1119,9 @@ export class PixelRenderer {
     if (coin.collected) return;
 
     const cx = Math.floor(coin.x - cameraX);
+    const canvasW = this.ctx.canvas ? this.ctx.canvas.width : 800;
+    if (cx < -20 || cx > canvasW + 20) return;
+
     const cy = Math.floor(coin.y + coin.floatOffset);
     const frame = coin.frame % 4;
 
@@ -1144,8 +1158,12 @@ export class PixelRenderer {
 
   // Draw Magic Particles
   public drawParticles(particles: Particle[], cameraX: number) {
+    const canvasW = this.ctx.canvas ? this.ctx.canvas.width : 800;
+
     particles.forEach(p => {
       const px = p.x - cameraX;
+      if (px < -20 || px > canvasW + 20) return;
+
       const py = p.y;
       const alpha = p.life / p.maxLife;
 
@@ -1165,5 +1183,45 @@ export class PixelRenderer {
       }
       this.ctx.restore();
     });
+  }
+
+  // Draw In-Game Level Up Announcement Banner Toast
+  public drawLevelAnnouncement(
+    announcement: { level: number; title: string; subtitle: string; timer: number } | null,
+    width: number,
+    height: number
+  ) {
+    if (!announcement || announcement.timer <= 0) return;
+
+    this.ctx.save();
+    const alpha = Math.min(1, announcement.timer);
+    this.ctx.globalAlpha = alpha;
+
+    const bannerW = Math.min(420, width - 40);
+    const bannerH = 54;
+    const bannerX = (width - bannerW) / 2;
+    const bannerY = 80;
+
+    // Outer glow & border
+    this.pRect(bannerX - 2, bannerY - 2, bannerW + 4, bannerH + 4, '#fbbf24');
+    this.pRect(bannerX, bannerY, bannerW, bannerH, '#090d16');
+    this.pRect(bannerX + 2, bannerY + 2, bannerW - 4, bannerH - 4, '#0f172a');
+
+    // Level Header Text
+    this.ctx.fillStyle = '#fef08a';
+    this.ctx.font = 'bold 11px "Press Start 2P"';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(`★ LEVEL ${announcement.level} REACHED! ★`, width / 2, bannerY + 20);
+
+    // Level Title / Subtitle
+    this.ctx.fillStyle = '#38bdf8';
+    this.ctx.font = '8px "Press Start 2P"';
+    this.ctx.fillText(announcement.title, width / 2, bannerY + 36);
+
+    this.ctx.fillStyle = '#a7f3d0';
+    this.ctx.font = '7px "Press Start 2P"';
+    this.ctx.fillText(announcement.subtitle, width / 2, bannerY + 48);
+
+    this.ctx.restore();
   }
 }

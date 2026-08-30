@@ -1,6 +1,6 @@
 import React from 'react';
-import { RotateCcw, Trophy, Skull, Play, Award, Flame, ArrowUpRight, ArrowDownRight, History, Users, LogOut, Home } from 'lucide-react';
-import { GameState, ScoreComparison, LeaderboardEntry, CharacterId } from '../types';
+import { RotateCcw, Trophy, Skull, Play, Award, Flame, ArrowUpRight, ArrowDownRight, History, Users, LogOut, Home, Star } from 'lucide-react';
+import { GameState, ScoreComparison, LeaderboardEntry, CharacterId, GameLevel, LEVEL_CONFIGS, CHARACTER_LEVEL_TITLES } from '../types';
 
 interface GameOverModalProps {
   gameState: GameState;
@@ -38,6 +38,11 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const isVictory = gameState === 'VICTORY';
   const isPause = gameState === 'PAUSED';
 
+  // Determine level reached: 1 (0-25), 2 (25-50), 3 (50-100)
+  const currentLevel: GameLevel = score < 25 ? 1 : score < 50 ? 2 : 3;
+  const levelCfg = LEVEL_CONFIGS[currentLevel];
+  const charTitleObj = CHARACTER_LEVEL_TITLES[character]?.[currentLevel] || { title: 'Champion', badge: '🏆' };
+
   const charNames: Record<CharacterId, string> = {
     harry: 'Harry',
     ron: 'Ron',
@@ -67,10 +72,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                 🏆 HOGWARTS HOUSE CUP CHAMPION!
               </span>
               <h2 className="text-base sm:text-lg text-yellow-300 font-bold">
-                100 POINTS REACHED!
+                ALL 3 LEVELS COMPLETED (100 PTS)!
               </h2>
               <p className="text-[9px] sm:text-[10px] text-amber-200/90">
-                {heroName} escaped Lord Voldemort, evaded all flying owls, and collected every single Galleon!
+                {heroName} attained the rank of <strong>{charTitleObj.badge} {charTitleObj.title}</strong>, escaped Lord Voldemort, and claimed the Hogwarts Cup!
               </p>
             </div>
           </>
@@ -80,7 +85,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               GAME PAUSED
             </h2>
             <p className="text-[9px] sm:text-[10px] text-slate-400">
-              Take a breath before resuming your Hogwarts run as {heroName}.
+              Current: Level {currentLevel} ({levelCfg.name}) as {heroName} ({charTitleObj.badge} {charTitleObj.title}).
             </p>
           </>
         ) : (
@@ -93,16 +98,27 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                 GAME OVER
               </h2>
               <p className="text-[9px] sm:text-[10px] text-slate-300">
-                Caught by Lord Voldemort or hit by an owl! Remember to time your leaps and dodge obstacles!
+                Caught in {levelCfg.name}! Leap over swooping owls and keep climbing to reach higher levels!
               </p>
             </div>
           </>
         )}
 
-        {/* Score & Comparison Summary Box */}
+        {/* Score & Level Summary Box */}
         <div className="w-full bg-slate-950/90 p-3 sm:p-3.5 rounded-lg border border-slate-800 flex flex-col gap-2.5 text-left">
+          {/* Level Reached Pill Banner */}
+          <div className="flex items-center justify-between bg-slate-900 border border-amber-500/50 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px]">
+            <div className="flex items-center gap-1.5">
+              <Award className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-amber-300 font-bold">LEVEL {currentLevel} / 3 REACHED:</span>
+            </div>
+            <span className="text-yellow-300 font-bold">
+              {charTitleObj.badge} {charTitleObj.title}
+            </span>
+          </div>
+
           <div className="flex justify-between items-center text-[10px]">
-            <span className="text-slate-400">SCORE COLLECTED:</span>
+            <span className="text-slate-400">POINTS COLLECTED:</span>
             <span className="text-amber-300 font-bold text-xs sm:text-sm">{score} / {maxScore} PTS</span>
           </div>
 
@@ -238,4 +254,5 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     </div>
   );
 };
+
 

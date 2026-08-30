@@ -119,17 +119,30 @@ export const MapInstructionsScreen: React.FC<MapInstructionsScreenProps> = ({
             <div>
               <div className="flex items-center gap-1.5 text-[#3a1b06] font-bold text-[9.5px] sm:text-[11px] border-b border-[#8b4513]/30 pb-1 mb-1.5">
                 <span className="text-amber-700 text-xs">🪙</span>
-                <span>1. MISSION & GALLEONS</span>
+                <span>1. 3 ESCAPE LEVELS</span>
               </div>
               <p className="text-[8px] sm:text-[9px] text-[#4a280e] leading-snug">
-                Leap across castle rooftops and platforms to collect <strong>Golden Galleons</strong> (+1 Point each).
+                Collect <strong>Golden Galleons</strong> (+1 Pt) to advance through 3 magical tiers:
               </p>
-              <div className="mt-2 bg-[#e2cc9b] p-1.5 rounded border border-[#8b4513]/40 text-[7.5px] sm:text-[8.5px] text-[#3e220c]">
-                <div className="flex items-center justify-between font-bold text-[#2d1606]">
-                  <span>🏆 HOUSE CUP GOAL:</span>
-                  <span className="text-[#8b4513] font-extrabold">100 POINTS</span>
+              
+              {/* 3 Tier level steps */}
+              <div className="mt-1.5 space-y-1 text-[7px] sm:text-[8px]">
+                <div className="flex items-center justify-between bg-[#e2cc9b] px-1.5 py-0.5 rounded border border-[#8b4513]/40 text-[#2d1606]">
+                  <span className="font-bold text-blue-900">LEVEL 1 (0-25 PTS):</span>
+                  <span className="font-semibold text-[#5c3717]">Castle Corridors</span>
                 </div>
-                <p className="mt-0.5 text-[#5c3717]">Reach 100 points to escape and achieve ultimate victory!</p>
+                <div className="flex items-center justify-between bg-[#e2cc9b] px-1.5 py-0.5 rounded border border-[#8b4513]/40 text-[#2d1606]">
+                  <span className="font-bold text-purple-900">LEVEL 2 (25-50 PTS):</span>
+                  <span className="font-semibold text-[#5c3717]">High Castle Spires</span>
+                </div>
+                <div className="flex items-center justify-between bg-[#e2cc9b] px-1.5 py-0.5 rounded border border-[#8b4513]/40 text-[#2d1606]">
+                  <span className="font-bold text-amber-900">LEVEL 3 (50-100 PTS):</span>
+                  <span className="font-semibold text-[#8b4513] font-bold">House Cup 🏆</span>
+                </div>
+              </div>
+
+              <div className="mt-1.5 bg-[#e2cc9b] p-1 rounded border border-[#8b4513]/40 text-[7px] sm:text-[8px] text-[#3e220c] text-center">
+                <span className="font-bold text-[#8b4513]">★ Level Up grants +1 Extra Life HP! ★</span>
               </div>
             </div>
 

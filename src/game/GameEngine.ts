@@ -13,6 +13,9 @@ import {
   DumbledoreBonus,
   CharacterId,
   BackgroundThemeId,
+  GameLevel,
+  LEVEL_CONFIGS,
+  CHARACTER_LEVEL_TITLES,
 } from '../types';
 import { generateHogwartsLevel, LevelData } from './levelGenerator';
 import { soundManager } from '../audio/soundManager';
@@ -26,6 +29,14 @@ export interface GameInputState {
   spark: boolean;
 }
 
+export interface LevelAnnouncement {
+  level: GameLevel;
+  title: string;
+  subtitle: string;
+  timer: number;
+  characterTitle: string;
+}
+
 export class GameEngine {
   public gameState: GameState = 'LOADING';
   public selectedCharacter: CharacterId = 'harry';
@@ -37,6 +48,19 @@ export class GameEngine {
   public cameraX: number = 0;
   public canvasWidth: number = 800;
   public canvasHeight: number = 600;
+
+  // 3-Level Progression System
+  // Level 1: 0 - 25 pts (Year 1)
+  // Level 2: 25 - 50 pts (Year 2)
+  // Level 3: 50 - 100 pts (Year 3 - Grand Escape)
+  public lastAnnouncedLevel: GameLevel = 1;
+  public levelAnnouncement: LevelAnnouncement | null = null;
+
+  public get currentLevel(): GameLevel {
+    if (this.score < 25) return 1;
+    if (this.score < 50) return 2;
+    return 3;
+  }
 
   public leaderboard: LeaderboardEntry[] = [];
   public lastComparison: ScoreComparison | null = null;
@@ -67,6 +91,18 @@ export class GameEngine {
 
   private prevJumpKey: boolean = false;
   private prevSparkKey: boolean = false;
+
+  public onStateChange?: () => void;
+
+  public notifyStateChange() {
+    if (this.onStateChange) {
+      try {
+        this.onStateChange();
+      } catch (err) {
+        console.error('Error in onStateChange callback:', err);
+      }
+    }
+  }
 
   constructor() {
     this.player = this.createDefaultPlayer();
@@ -156,6 +192,7 @@ export class GameEngine {
       id: `run_${Date.now()}`,
       score: currentScore,
       maxScore: this.maxScore,
+      level: this.currentLevel,
       date: formattedDate,
       timeSpent: Math.round(this.gameTime),
       result,
@@ -191,6 +228,7 @@ export class GameEngine {
       isNewBest,
       rank: rank > 0 ? rank : 1,
       totalGames: this.leaderboard.length,
+      level: this.currentLevel,
     };
 
     return this.lastComparison;
@@ -233,6 +271,8 @@ export class GameEngine {
     this.gameTime = 0;
     this.cameraX = 0;
     this.owlSpawnTimer = 4.0;
+    this.lastAnnouncedLevel = 1;
+    this.levelAnnouncement = null;
     this.inputs = {
       left: false,
       right: false,
@@ -249,6 +289,7 @@ export class GameEngine {
     this.resetGame();
     this.gameState = 'PLAYING';
     soundManager.startBgm();
+    this.notifyStateChange();
   }
 
   public pauseGame() {
@@ -257,6 +298,7 @@ export class GameEngine {
     } else if (this.gameState === 'PAUSED') {
       this.gameState = 'PLAYING';
     }
+    this.notifyStateChange();
   }
 
   public update(dt: number) {
@@ -272,7 +314,7 @@ export class GameEngine {
     }
 
     // Clamp delta time to avoid large physics steps
-    const delta = Math.min(dt, 0.05);
+    const delta = Math.min(Math.max(dt, 0.001), 0.033);
     this.gameTime += delta;
 
     // 1. Update Player
@@ -299,12 +341,21 @@ export class GameEngine {
     // 8. Update Camera
     this.updateCamera();
 
-    // Check Win Condition: 100 Points reached!
+    // 9. Update Level-Up Announcement Toast Timer
+    if (this.levelAnnouncement) {
+      this.levelAnnouncement.timer -= delta;
+      if (this.levelAnnouncement.timer <= 0) {
+        this.levelAnnouncement = null;
+      }
+    }
+
+    // Check Win Condition: 100 Points reached (Level 3 Cleared - Final House Cup Victory)!
     if (this.score >= this.maxScore && this.gameState === 'PLAYING') {
       this.gameState = 'VICTORY';
       this.recordGameCompletion('VICTORY');
       soundManager.playVictory();
       this.spawnVictoryFireworks();
+      this.notifyStateChange();
     }
   }
 
@@ -405,32 +456,40 @@ export class GameEngine {
     p.y += p.vy * dt;
     p.isGrounded = false;
 
-    // Check collision against platforms
-    this.platforms.forEach(plat => {
-      // Horizontal overlap
-      if (p.x + p.width > plat.x && p.x < plat.x + plat.width) {
-        if (plat.type === 'solid') {
-          // Solid platform collision (Top landing and bottom/side blocking)
-          if (p.vy >= 0 && oldY + p.height <= plat.y + 12 && p.y + p.height >= plat.y) {
+    // Check collision against platforms with stable edge tolerances
+    for (const plat of this.platforms) {
+      // Horizontal overlap (with a 3px edge tolerance)
+      const hasHorizontalOverlap = (p.x + p.width > plat.x + 3) && (p.x < plat.x + plat.width - 3);
+      if (!hasHorizontalOverlap) continue;
+
+      if (plat.type === 'solid') {
+        // Solid platform collision (Top landing and bottom blocking)
+        if (p.vy >= 0) {
+          if (oldY + p.height <= plat.y + 10 && p.y + p.height >= plat.y) {
             p.y = plat.y - p.height;
             p.vy = 0;
             p.isGrounded = true;
-          } else if (p.vy < 0 && oldY >= plat.y + plat.height - 8 && p.y < plat.y + plat.height) {
+            break; // Grounded on top of solid platform
+          }
+        } else if (p.vy < 0) {
+          if (oldY >= plat.y + plat.height - 8 && p.y < plat.y + plat.height) {
             p.y = plat.y + plat.height;
             p.vy = 0;
           }
-        } else {
-          // One-way / drop-through platform (only land when falling downwards from above)
-          // Also skip if holding Down key
-          const isDroppingDown = this.inputs.down && (this.inputs.jump || this.inputs.up);
-          if (!isDroppingDown && p.vy >= 0 && oldY + p.height <= plat.y + 10 && p.y + p.height >= plat.y) {
+        }
+      } else {
+        // One-way / drop-through platform (only land when falling downwards from above)
+        const isDroppingDown = this.inputs.down && (this.inputs.jump || this.inputs.up);
+        if (!isDroppingDown && p.vy >= 0) {
+          if (oldY + p.height <= plat.y + 10 && p.y + p.height >= plat.y) {
             p.y = plat.y - p.height;
             p.vy = 0;
             p.isGrounded = true;
+            break; // Grounded on top of drop-through platform
           }
         }
       }
-    });
+    }
 
     // Pit fall check (fell off castle)
     if (p.y > 620) {
@@ -548,6 +607,7 @@ export class GameEngine {
         // Boost Harry's HP (max 5)
         this.player.lives = Math.min(5, this.player.lives + 1);
         soundManager.playDumbledoreBlessing();
+        this.notifyStateChange();
 
         // Spawn glorious phoenix aura sparkles
         this.createDumbledoreSparkles(dumbledore.x + 13, floatY + 16);
@@ -564,11 +624,18 @@ export class GameEngine {
   }
 
   private updateOwls(dt: number) {
-    // Spawn Owls flying across the sky periodically
+    // Spawn Owls flying across the sky periodically - frequency scales by level
     this.owlSpawnTimer -= dt;
     if (this.owlSpawnTimer <= 0) {
       this.spawnOwlHazard();
-      this.owlSpawnTimer = 3.5 + Math.random() * 3.0;
+      const currentLv = this.currentLevel;
+      if (currentLv === 1) {
+        this.owlSpawnTimer = 3.6 + Math.random() * 2.8;
+      } else if (currentLv === 2) {
+        this.owlSpawnTimer = 2.4 + Math.random() * 2.2;
+      } else {
+        this.owlSpawnTimer = 1.7 + Math.random() * 1.6;
+      }
     }
 
     // Update active owls
@@ -622,11 +689,15 @@ export class GameEngine {
       spawnY = this.player.y - 40;
     }
 
+    // Owl flight speed scales slightly with level
+    const currentLv = this.currentLevel;
+    const baseSpeed = currentLv === 1 ? 230 : currentLv === 2 ? 275 : 320;
+
     const owl: OwlHazard = {
       id: `owl_${Date.now()}_${Math.random()}`,
       x: spawnX,
       y: spawnY,
-      vx: -(240 + Math.random() * 80), // Fast flight
+      vx: -(baseSpeed + Math.random() * 60), // Fast flight
       vy: 0,
       baseY: spawnY,
       width: 24,
@@ -635,12 +706,70 @@ export class GameEngine {
       flightType: type,
       wingPhase: 0,
       letterCarried: Math.random() < 0.7,
-      warningTimer: 1.4, // 1.4 second alert box on screen edge before entering
+      warningTimer: currentLv === 3 ? 1.0 : 1.3, // Warning alert box on screen edge before entering
       warningY: spawnY,
       active: true,
     };
 
     this.owls.push(owl);
+  }
+
+  public triggerLevelUp(level: GameLevel) {
+    soundManager.playLevelUp(level);
+
+    // Reward player: +1 Extra Life HP (max 5)
+    this.player.lives = Math.min(5, this.player.lives + 1);
+
+    const char = this.player.character || this.selectedCharacter || 'harry';
+    const charTitleObj = CHARACTER_LEVEL_TITLES[char]?.[level] || { title: 'Champion', badge: '🏆' };
+    const cfg = LEVEL_CONFIGS[level];
+
+    this.levelAnnouncement = {
+      level,
+      title: `LEVEL ${level} UNLOCKED! (${cfg.minPoints} PTS)`,
+      subtitle: `${cfg.name} • ${charTitleObj.badge} ${charTitleObj.title}`,
+      timer: 3.8,
+      characterTitle: `${charTitleObj.badge} ${charTitleObj.title}`,
+    };
+
+    // Celebration particles & burst
+    this.spawnLevelUpFireworks(level);
+    this.notifyStateChange();
+
+    // Floating announcement over player
+    this.coinPickupFloats.push({
+      text: `★ LEVEL ${level} UNLOCKED! ★`,
+      x: this.player.x - 30,
+      y: this.player.y - 30,
+      alpha: 1.5,
+    });
+  }
+
+  private spawnLevelUpFireworks(level: GameLevel) {
+    const colors = level === 2
+      ? ['#a855f7', '#38bdf8', '#fbbf24', '#ffffff', '#c084fc']
+      : ['#fbbf24', '#f59e0b', '#dc2626', '#10b981', '#ffffff'];
+
+    for (let f = 0; f < 6; f++) {
+      const fx = this.player.x + (Math.random() - 0.5) * 320;
+      const fy = Math.max(80, this.player.y - 80 + (Math.random() - 0.5) * 120);
+      for (let p = 0; p < 18; p++) {
+        const angle = (Math.PI * 2 * p) / 18 + (Math.random() - 0.5) * 0.3;
+        const spd = 60 + Math.random() * 90;
+        this.particles.push({
+          x: fx,
+          y: fy,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd - 25,
+          size: 3.5,
+          color: colors[f % colors.length],
+          alpha: 1.0,
+          maxLife: 1.1,
+          life: 1.1,
+          shape: 'spark',
+        });
+      }
+    }
   }
 
   private updateCoins(dt: number) {
@@ -654,13 +783,26 @@ export class GameEngine {
       }
       coin.floatOffset = Math.sin(this.gameTime * 4 + coin.x) * 3;
 
-      // Check collection by Harry Potter
+      // Check collection by Harry / Ron / Hermione
       if (this.checkCollision(this.player, coin)) {
         coin.collected = true;
+        const prevScore = this.score;
         this.score += coin.value;
         if (this.score > this.maxScore) this.score = this.maxScore;
         this.saveHighScore();
         soundManager.playCoin();
+
+        // Check 3 Levels Thresholds
+        // Level 1: 0 to 25 pts
+        // Level 2: 25 to 50 pts
+        // Level 3: 50 to 100 pts
+        if (prevScore < 25 && this.score >= 25 && this.lastAnnouncedLevel < 2) {
+          this.lastAnnouncedLevel = 2;
+          this.triggerLevelUp(2);
+        } else if (prevScore < 50 && this.score >= 50 && this.lastAnnouncedLevel < 3) {
+          this.lastAnnouncedLevel = 3;
+          this.triggerLevelUp(3);
+        }
 
         // Sparkle particles
         this.createCoinSparkles(coin.x + coin.width / 2, coin.y + coin.height / 2);
@@ -671,6 +813,7 @@ export class GameEngine {
           y: coin.y - 10,
           alpha: 1.0,
         });
+        this.notifyStateChange();
       }
     });
   }
@@ -727,12 +870,13 @@ export class GameEngine {
   }
 
   private handlePlayerDamage(source: 'voldemort' | 'draco' | 'owl' | 'pit') {
+    if (this.gameState !== 'PLAYING') return;
+
     const p = this.player;
     if (p.invulnerableTimer > 0 && source !== 'pit') return;
 
     soundManager.playHurt();
-    p.lives -= 1;
-    p.invulnerableTimer = 1.8; // Grace period with blinking
+    p.lives = Math.max(0, p.lives - 1);
 
     // Knockback
     p.vy = -340;
@@ -742,17 +886,35 @@ export class GameEngine {
     this.createDamageSparks(p.x + p.width / 2, p.y + p.height / 2);
 
     if (source === 'pit') {
-      // Respawn at safe platform
-      p.x = Math.max(80, p.x - 200);
-      p.y = 360;
+      // Find nearest safe solid platform to respawn on
+      const safePlat =
+        this.platforms
+          .slice()
+          .reverse()
+          .find(plat => plat.type === 'solid' && plat.x <= p.x && plat.y <= 460) ||
+        this.platforms[0];
+
+      if (safePlat) {
+        p.x = safePlat.x + Math.min(20, safePlat.width / 2);
+        p.y = safePlat.y - p.height - 4;
+      } else {
+        p.x = 80;
+        p.y = 350;
+      }
       p.vy = 0;
       p.vx = 0;
     }
 
     if (p.lives <= 0) {
+      p.lives = 0;
+      p.invulnerableTimer = 0;
       this.gameState = 'GAMEOVER';
       this.recordGameCompletion('DEFEAT');
       soundManager.playGameOver();
+      this.notifyStateChange();
+    } else {
+      p.invulnerableTimer = 1.8; // Grace period with blinking
+      this.notifyStateChange();
     }
   }
 

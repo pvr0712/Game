@@ -145,6 +145,62 @@ export interface FloatingCandle {
   speed: number;
 }
 
+export type GameLevel = 1 | 2 | 3;
+
+export interface LevelConfig {
+  level: GameLevel;
+  name: string;
+  maxPoints: number;
+  minPoints: number;
+  subtitle: string;
+  themeColor: string;
+}
+
+export const LEVEL_CONFIGS: Record<GameLevel, LevelConfig> = {
+  1: {
+    level: 1,
+    name: 'Year 1: Castle Corridors',
+    minPoints: 0,
+    maxPoints: 25,
+    subtitle: 'Escape the lower castle battlements and reach 25 points!',
+    themeColor: 'from-blue-600 to-cyan-500',
+  },
+  2: {
+    level: 2,
+    name: 'Year 2: High Spires & Dungeons',
+    minPoints: 25,
+    maxPoints: 50,
+    subtitle: 'Scale high castle spires & evade faster swooping owls to reach 50 points!',
+    themeColor: 'from-purple-600 to-indigo-500',
+  },
+  3: {
+    level: 3,
+    name: 'Year 3: The Grand Escape',
+    minPoints: 50,
+    maxPoints: 100,
+    subtitle: 'Evade Lord Voldemort & reach 100 points for the Hogwarts House Cup!',
+    themeColor: 'from-amber-500 to-yellow-400',
+  },
+};
+
+export const CHARACTER_LEVEL_TITLES: Record<CharacterId, Record<GameLevel, { title: string; badge: string }>> = {
+  harry: {
+    1: { title: 'Gryffindor Seeker', badge: '⚡' },
+    2: { title: 'Patronus Master', badge: '🦌' },
+    3: { title: 'The Chosen One', badge: '🏆' },
+  },
+  ron: {
+    1: { title: 'Wizard Chess Prodigy', badge: '♟️' },
+    2: { title: 'Knight of Gryffindor', badge: '🛡️' },
+    3: { title: 'Auror Champion', badge: '🏆' },
+  },
+  hermione: {
+    1: { title: 'Time-Turner Scholar', badge: '⏳' },
+    2: { title: 'Prefect of Spells', badge: '📖' },
+    3: { title: 'Minister of Magic', badge: '🏆' },
+  },
+};
+
 export interface GameSettings {
   soundEnabled: boolean;
   bgmEnabled: boolean;
@@ -156,6 +212,7 @@ export interface LeaderboardEntry {
   id: string;
   score: number;
   maxScore: number;
+  level: GameLevel;
   date: string;
   timeSpent: number; // in seconds
   result: 'VICTORY' | 'DEFEAT';
@@ -169,4 +226,5 @@ export interface ScoreComparison {
   isNewBest: boolean;
   rank: number;
   totalGames: number;
+  level: GameLevel;
 }

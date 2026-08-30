@@ -181,8 +181,20 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                         {isGold ? '🥇' : isSilver ? '🥈' : isBronze ? '🥉' : `#${idx + 1}`}
                       </span>
                       <div className="flex flex-col">
-                        <span className="font-bold flex items-center gap-1">
-                          {entry.score} / {entry.maxScore} PTS
+                        <span className="font-bold flex items-center gap-1.5">
+                          <span>{entry.score} / {entry.maxScore} PTS</span>
+                          {/* Level Badge */}
+                          <span
+                            className={`text-[7.5px] px-1 py-0.2 rounded font-bold border ${
+                              (entry.level || (entry.score < 25 ? 1 : entry.score < 50 ? 2 : 3)) === 3
+                                ? 'bg-amber-400/20 text-yellow-300 border-yellow-400/60'
+                                : (entry.level || (entry.score < 25 ? 1 : entry.score < 50 ? 2 : 3)) === 2
+                                ? 'bg-purple-500/20 text-purple-300 border-purple-400/60'
+                                : 'bg-cyan-500/20 text-cyan-300 border-cyan-400/60'
+                            }`}
+                          >
+                            LV {entry.level || (entry.score < 25 ? 1 : entry.score < 50 ? 2 : 3)}
+                          </span>
                           {entry.score === 100 && (
                             <span className="text-[8px] bg-yellow-400 text-slate-950 px-1 rounded font-bold">
                               MAX
@@ -220,8 +232,19 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="text-slate-500 text-[9px] w-5">#{totalRuns - idx}</span>
                     <div className="flex flex-col">
-                      <span className="font-bold text-amber-300">
-                        {entry.score} / {entry.maxScore} PTS
+                      <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                        <span>{entry.score} / {entry.maxScore} PTS</span>
+                        <span
+                          className={`text-[7.5px] px-1 py-0.2 rounded font-bold border ${
+                            (entry.level || (entry.score < 25 ? 1 : entry.score < 50 ? 2 : 3)) === 3
+                              ? 'bg-amber-400/20 text-yellow-300 border-yellow-400/60'
+                              : (entry.level || (entry.score < 25 ? 1 : entry.score < 50 ? 2 : 3)) === 2
+                              ? 'bg-purple-500/20 text-purple-300 border-purple-400/60'
+                              : 'bg-cyan-500/20 text-cyan-300 border-cyan-400/60'
+                          }`}
+                        >
+                          LV {entry.level || (entry.score < 25 ? 1 : entry.score < 50 ? 2 : 3)}
+                        </span>
                       </span>
                       <span className="text-[8px] text-slate-400">
                         {entry.date} • {entry.timeSpent}s

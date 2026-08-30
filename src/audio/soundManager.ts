@@ -621,6 +621,54 @@ class SoundManager {
     } catch {}
   }
 
+  public playLevelUp(level: number = 2) {
+    if (this.isMuted) return;
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+
+      // Ascending celebratory fanfare notes
+      const notes = level === 2
+        ? [523.25, 659.25, 783.99, 1046.50, 1318.51] // C5, E5, G5, C6, E6
+        : [587.33, 739.99, 880.00, 1174.66, 1479.98, 1760.00]; // D5, F#5, A5, D6, F#6, A6
+
+      notes.forEach((freq, idx) => {
+        if (!this.ctx) return;
+        const noteStart = now + idx * 0.07;
+        const dur = idx === notes.length - 1 ? 0.55 : 0.22;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, noteStart);
+
+        gain.gain.setValueAtTime(0.0001, noteStart);
+        gain.gain.linearRampToValueAtTime(0.18, noteStart + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + dur);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(noteStart);
+        osc.stop(noteStart + dur + 0.02);
+
+        // Chime harmonic
+        const chime = this.ctx.createOscillator();
+        const chimeGain = this.ctx.createGain();
+        chime.type = 'sine';
+        chime.frequency.setValueAtTime(freq * 2, noteStart);
+        chimeGain.gain.setValueAtTime(0.0001, noteStart);
+        chimeGain.gain.linearRampToValueAtTime(0.08, noteStart + 0.01);
+        chimeGain.gain.exponentialRampToValueAtTime(0.0001, noteStart + Math.min(0.35, dur));
+        chime.connect(chimeGain);
+        chimeGain.connect(this.ctx.destination);
+        chime.start(noteStart);
+        chime.stop(noteStart + dur + 0.02);
+      });
+    } catch {}
+  }
+
   public playButtonClick() {
     if (this.isMuted) return;
     try {

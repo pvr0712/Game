@@ -81,7 +81,7 @@ export const GameCanvas: React.FC = () => {
       const calculatedWidth = Math.max(800, Math.round(baseHeight * aspect));
 
       const canvas = canvasRef.current;
-      if (canvas.width !== calculatedWidth || canvas.height !== baseHeight) {
+      if (Math.abs(canvas.width - calculatedWidth) > 2 || canvas.height !== baseHeight) {
         canvas.width = calculatedWidth;
         canvas.height = baseHeight;
         engine.setCanvasDimensions(calculatedWidth, baseHeight);
@@ -178,6 +178,16 @@ export const GameCanvas: React.FC = () => {
     };
   }, [engine]);
 
+  // Attach real-time engine state change listener
+  useEffect(() => {
+    engine.onStateChange = () => {
+      setTick(t => t + 1);
+    };
+    return () => {
+      engine.onStateChange = undefined;
+    };
+  }, [engine]);
+
   // Main Canvas Render & Game Loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -189,15 +199,33 @@ export const GameCanvas: React.FC = () => {
     rendererRef.current = new PixelRenderer(ctx);
     const renderer = rendererRef.current;
 
-    let syncCounter = 0;
+    let prevGameState = engine.gameState;
+    let prevLives = engine.player.lives;
+    let prevScore = engine.score;
+    let prevLevel = engine.currentLevel;
 
     const loop = (currentTime: number) => {
       try {
-        const dt = (currentTime - lastTimeRef.current) / 1000;
+        const rawDt = (currentTime - lastTimeRef.current) / 1000;
+        const dt = Math.min(Math.max(rawDt, 0.001), 0.033);
         lastTimeRef.current = currentTime;
 
         // Update engine
         engine.update(dt);
+
+        // Immediate detection of Game Over, Victory, Level, Lives, or Score changes
+        if (
+          engine.gameState !== prevGameState ||
+          engine.player.lives !== prevLives ||
+          engine.score !== prevScore ||
+          engine.currentLevel !== prevLevel
+        ) {
+          prevGameState = engine.gameState;
+          prevLives = engine.player.lives;
+          prevScore = engine.score;
+          prevLevel = engine.currentLevel;
+          setTick(t => t + 1);
+        }
 
         // Render Everything
         // 1. Unified Dynamic Background (Dark Clouds, Dark Dungeon, or Creepy Forest)
@@ -235,13 +263,8 @@ export const GameCanvas: React.FC = () => {
         // 10. Coin & HP Pickup Float Text (+1)
         engine.drawScorePickups(ctx);
 
-        // Sync UI state every few frames when playing
-        if (engine.gameState === 'PLAYING') {
-          syncCounter++;
-          if (syncCounter % 6 === 0) {
-            setTick(t => t + 1);
-          }
-        }
+        // 11. Level-Up Toast Announcement
+        renderer.drawLevelAnnouncement(engine.levelAnnouncement, canvas.width, canvas.height);
       } catch (err) {
         console.error('Error during game loop execution:', err);
       }
