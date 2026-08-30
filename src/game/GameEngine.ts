@@ -12,6 +12,7 @@ import {
   ScoreComparison,
   DumbledoreBonus,
   CharacterId,
+  BackgroundThemeId,
 } from '../types';
 import { generateHogwartsLevel, LevelData } from './levelGenerator';
 import { soundManager } from '../audio/soundManager';
@@ -28,6 +29,7 @@ export interface GameInputState {
 export class GameEngine {
   public gameState: GameState = 'LOADING';
   public selectedCharacter: CharacterId = 'harry';
+  public selectedBackground: BackgroundThemeId = 'dark_clouds';
   public score: number = 0;
   public maxScore: number = 100;
   public highScore: number = 0;
@@ -79,6 +81,20 @@ export class GameEngine {
     }
   }
 
+  public setBackground(theme: BackgroundThemeId) {
+    this.selectedBackground = theme;
+    try {
+      localStorage.setItem('hogwarts_pixel_escape_background', theme);
+    } catch {
+      // ignore
+    }
+  }
+
+  public setCanvasDimensions(width: number, height: number) {
+    this.canvasWidth = Math.max(800, width);
+    this.canvasHeight = Math.max(400, height);
+  }
+
   private createDefaultPlayer(): Player {
     return {
       character: this.selectedCharacter || 'harry',
@@ -114,6 +130,11 @@ export class GameEngine {
         this.highScore = parseInt(savedHigh, 10) || 0;
       } else if (this.leaderboard.length > 0) {
         this.highScore = Math.max(...this.leaderboard.map(e => e.score));
+      }
+
+      const savedBg = localStorage.getItem('hogwarts_pixel_escape_background') as BackgroundThemeId | null;
+      if (savedBg && (savedBg === 'dark_clouds' || savedBg === 'dark_dungeon' || savedBg === 'creepy_forest')) {
+        this.selectedBackground = savedBg;
       }
     } catch {
       this.leaderboard = [];

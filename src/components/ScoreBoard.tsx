@@ -53,7 +53,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   const currentChar = charNames[character] || charNames.harry;
 
   return (
-    <header className="w-full bg-slate-900/90 border-b-2 sm:border-b-4 border-amber-600/80 px-2 py-1.5 sm:px-6 sm:py-3 shadow-2xl backdrop-blur-md z-20 flex flex-col gap-1 sm:gap-2">
+    <header className="w-full bg-slate-900/80 border-b border-amber-600/60 px-2 py-1 sm:px-6 sm:py-2 shadow-2xl backdrop-blur-md z-20 flex flex-col gap-1 sm:gap-2">
       {/* Top row: Stats, Progress, and Controls */}
       <div className="flex items-center justify-between gap-1.5 sm:gap-4">
         
@@ -211,12 +211,12 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
         </div>
       </div>
 
-      {/* Quick Action Hint Pill */}
-      <div className="w-full hidden sm:flex items-center justify-between text-[8px] sm:text-[9px] text-slate-300 font-pixel bg-slate-950/50 px-2 py-0.5 sm:py-1 rounded border border-slate-800">
+      {/* Quick Action Hint Pill (Only on large desktop screens to keep mobile landscape full screen) */}
+      <div className="w-full hidden lg:flex items-center justify-between text-[8px] sm:text-[9px] text-slate-300 font-pixel bg-slate-950/50 px-2 py-0.5 sm:py-1 rounded border border-slate-800">
         <span className="text-amber-400">
           🦉 <strong className="text-yellow-200">OWLS FLYING:</strong> Leap over low owls or pass under high owls with <kbd className="bg-slate-800 px-1 py-0.5 border border-slate-600 text-amber-300 rounded">SPACE</kbd>!
         </span>
-        <span className="hidden md:inline text-emerald-400">
+        <span className="text-emerald-400">
           💀 <strong className="text-emerald-300">LORD VOLDEMORT:</strong> Escape his laugh by jumping over or leaping across platforms!
         </span>
       </div>

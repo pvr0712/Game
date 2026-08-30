@@ -1,4 +1,4 @@
-import { Player, Enemy, OwlHazard, Coin, Platform, Particle, Cloud, CastleSpire, DumbledoreBonus } from '../types';
+import { Player, Enemy, OwlHazard, Coin, Platform, Particle, Cloud, CastleSpire, DumbledoreBonus, BackgroundThemeId } from '../types';
 
 export class PixelRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -13,7 +13,328 @@ export class PixelRenderer {
     this.ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
   }
 
-  // Draw sky and moon with clouds
+  // Unified background switcher for all 3 themes
+  public drawBackground(
+    width: number,
+    height: number,
+    gameTime: number,
+    clouds: Cloud[],
+    cameraX: number,
+    spires: CastleSpire[],
+    theme: BackgroundThemeId = 'dark_clouds'
+  ) {
+    if (theme === 'dark_dungeon') {
+      this.drawDungeonBackground(width, height, gameTime, cameraX);
+    } else if (theme === 'creepy_forest') {
+      this.drawCreepyForestBackground(width, height, gameTime, clouds, cameraX);
+    } else {
+      // Default: Dark Clouds & Hogwarts Castle
+      this.drawSky(width, height, gameTime, clouds, cameraX);
+      this.drawCastleBackground(width, height, cameraX, spires, gameTime);
+    }
+  }
+
+  // 1. THEME: Dark Dungeon & Chamber Background
+  public drawDungeonBackground(
+    width: number,
+    height: number,
+    gameTime: number,
+    cameraX: number
+  ) {
+    this.ctx.save();
+
+    // Deep subterranean dungeon ambient gradient
+    const grad = this.ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#04070a');
+    grad.addColorStop(0.35, '#071015');
+    grad.addColorStop(0.7, '#0b191c');
+    grad.addColorStop(1, '#0e2324');
+    this.ctx.fillStyle = grad;
+    this.ctx.fillRect(0, 0, width, height);
+
+    const parallaxFactor = 0.2;
+    const bgOffset = -(cameraX * parallaxFactor);
+
+    // Dungeon stone masonry wall grid
+    const brickW = 48;
+    const brickH = 24;
+    const startX = Math.floor(bgOffset % brickW) - brickW;
+
+    for (let by = 0; by < height; by += brickH) {
+      const rowIdx = Math.floor(by / brickH);
+      const rowShift = (rowIdx % 2) * (brickW / 2);
+      for (let bx = startX + rowShift; bx < width + brickW; bx += brickW) {
+        // Mortar lines
+        this.pRect(bx, by, brickW - 1, brickH - 1, '#081316');
+        this.pRect(bx + 1, by + 1, brickW - 3, 2, '#12252a'); // Top brick bevel
+        this.pRect(bx + 1, by + 3, brickW - 3, brickH - 4, '#0a1a1e'); // Brick body
+
+        // Random ancient moss & cracked stone texture
+        const seed = Math.abs(Math.sin(bx * 13 + by * 37));
+        if (seed > 0.7) {
+          this.pRect(bx + 4, by + 6, 6, 4, '#06332a'); // Dark dungeon moss
+          this.pRect(bx + 6, by + 8, 3, 2, '#047857'); // Vibrant moss spot
+        } else if (seed < 0.25) {
+          this.pRect(bx + 10, by + 4, 12, 1, '#050c0e'); // Crack
+          this.pRect(bx + 16, by + 5, 2, 4, '#050c0e');
+        }
+
+        // Glowing emerald Slytherin runes on select stones
+        if (Math.abs(Math.sin(bx * 7 + by * 11)) > 0.88) {
+          const glow = Math.sin(gameTime * 2.5 + bx) * 0.3 + 0.7;
+          this.pRect(bx + 18, by + 8, 6, 8, `rgba(16, 185, 129, ${glow * 0.4})`);
+          this.pRect(bx + 20, by + 9, 2, 6, `rgba(52, 211, 153, ${glow * 0.8})`);
+          this.pRect(bx + 19, by + 11, 4, 2, `rgba(167, 243, 208, ${glow})`);
+        }
+      }
+    }
+
+    // Dungeon Gothic Pillars & Vaulted Arches
+    const pillarSpacing = 260;
+    const pillarStartX = Math.floor(bgOffset % pillarSpacing) - pillarSpacing;
+
+    for (let px = pillarStartX; px < width + pillarSpacing; px += pillarSpacing) {
+      const pWidth = 32;
+
+      // Vaulted Arch connecting pillars
+      const archSpan = pillarSpacing;
+      this.pRect(px, 30, archSpan, 18, '#061215');
+      this.pRect(px, 32, archSpan, 4, '#10272d');
+      // Arch curve rib
+      for (let rx = 0; rx < archSpan / 2; rx += 4) {
+        const ry = 30 + Math.pow(rx / (archSpan / 4), 2) * 12;
+        this.pRect(px + rx, ry, 6, 8, '#07161a');
+        this.pRect(px + archSpan - rx - 6, ry, 6, 8, '#07161a');
+      }
+
+      // Massive Stone Pillar Column
+      this.pRect(px, 0, pWidth, height, '#071418');
+      this.pRect(px + 2, 0, 4, height, '#132c33'); // Highlight left edge
+      this.pRect(px + pWidth - 4, 0, 4, height, '#03080a'); // Shadow right edge
+
+      // Pillar Capital & Base rings
+      this.pRect(px - 4, 40, pWidth + 8, 12, '#0c2227');
+      this.pRect(px - 6, 44, pWidth + 12, 6, '#16363d');
+      this.pRect(px - 4, height - 60, pWidth + 8, 14, '#0c2227');
+
+      // Hanging Iron Dungeon Chains
+      const chainX = px + pWidth + 40;
+      const chainLen = 140 + Math.sin(px) * 40;
+      const sway = Math.sin(gameTime * 1.8 + px) * 3;
+      for (let cy = 40; cy < chainLen; cy += 8) {
+        const linkSway = sway * (cy / chainLen);
+        this.pRect(chainX + linkSway, cy, 3, 6, '#1e293b');
+        this.pRect(chainX + 1 + linkSway, cy + 2, 1, 2, '#475569');
+      }
+      // Iron shackle / cage at chain bottom
+      this.pRect(chainX - 4 + sway, chainLen, 11, 14, '#0f172a');
+      this.pRect(chainX - 2 + sway, chainLen + 2, 7, 10, '#040d10');
+      this.pRect(chainX + 1 + sway, chainLen + 4, 2, 6, '#334155');
+
+      // Wall Iron Torch Sconce with animated flame & glow circle
+      const torchX = px + pWidth / 2;
+      const torchY = 160;
+      
+      // Ambient warm radial fire glow
+      const flicker = Math.sin(gameTime * 8 + px) * 0.15 + 0.85;
+      const glowGrad = this.ctx.createRadialGradient(torchX, torchY, 4, torchX, torchY, 70);
+      glowGrad.addColorStop(0, `rgba(245, 158, 11, ${0.35 * flicker})`);
+      glowGrad.addColorStop(0.5, `rgba(234, 88, 12, ${0.15 * flicker})`);
+      glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      this.ctx.fillStyle = glowGrad;
+      this.ctx.beginPath();
+      this.ctx.arc(torchX, torchY, 70, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      // Sconce Bracket
+      this.pRect(torchX - 2, torchY + 6, 4, 14, '#0f172a');
+      this.pRect(torchX - 5, torchY + 16, 10, 4, '#1e293b');
+      this.pRect(torchX - 4, torchY + 2, 8, 6, '#334155');
+
+      // Animated Flame
+      const flameDx = Math.sin(gameTime * 14 + px) * 2;
+      this.pRect(torchX - 3 + flameDx * 0.6, torchY - 6, 6, 8, '#ea580c');
+      this.pRect(torchX - 2 + flameDx * 0.4, torchY - 10, 4, 7, '#f59e0b');
+      this.pRect(torchX - 1, torchY - 14, 2, 5, '#fef08a');
+    }
+
+    // Drifting dungeon embers & mystical spores
+    for (let i = 0; i < 20; i++) {
+      const ex = (i * 67 + gameTime * 15 + Math.sin(gameTime + i) * 20) % width;
+      const ey = height - ((i * 41 + gameTime * 25) % height);
+      const eAlpha = Math.sin(gameTime * 3 + i) * 0.4 + 0.6;
+      this.pRect(ex, ey, 2, 2, `rgba(52, 211, 153, ${eAlpha * 0.7})`);
+    }
+
+    this.ctx.restore();
+  }
+
+  // 2. THEME: Creepy Forbidden Forest Background
+  public drawCreepyForestBackground(
+    width: number,
+    height: number,
+    gameTime: number,
+    clouds: Cloud[],
+    cameraX: number
+  ) {
+    this.ctx.save();
+
+    // Spooky twilight midnight purple gradient
+    const grad = this.ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#05020a');
+    grad.addColorStop(0.3, '#120520');
+    grad.addColorStop(0.65, '#1e0a33');
+    grad.addColorStop(1, '#0e0417');
+    this.ctx.fillStyle = grad;
+    this.ctx.fillRect(0, 0, width, height);
+
+    // Distant eerie twinkling dim stars
+    for (let i = 0; i < 30; i++) {
+      const sx = (i * 89 + 13) % width;
+      const sy = (i * 43 + 17) % (height * 0.45);
+      const twinkle = Math.sin(gameTime * 2 + i * 1.5) * 0.5 + 0.5;
+      if (twinkle > 0.4) {
+        this.pRect(sx, sy, i % 5 === 0 ? 2 : 1, i % 5 === 0 ? 2 : 1, '#c084fc');
+      }
+    }
+
+    // Spooky Harvest / Blood Crescent Moon
+    const moonX = width - 140 - (cameraX * 0.04);
+    const moonY = 70;
+    const moonR = 30;
+
+    // Blood red/amber moon aura
+    const moonAura = this.ctx.createRadialGradient(moonX, moonY, 10, moonX, moonY, 65);
+    moonAura.addColorStop(0, 'rgba(239, 68, 68, 0.25)');
+    moonAura.addColorStop(0.6, 'rgba(168, 85, 247, 0.12)');
+    moonAura.addColorStop(1, 'rgba(0,0,0,0)');
+    this.ctx.fillStyle = moonAura;
+    this.ctx.beginPath();
+    this.ctx.arc(moonX, moonY, 65, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Crescent Moon shape in pixel art
+    for (let dy = -moonR; dy <= moonR; dy += 2) {
+      for (let dx = -moonR; dx <= moonR; dx += 2) {
+        const d1 = Math.sqrt(dx * dx + dy * dy);
+        const d2 = Math.sqrt((dx + 10) * (dx + 10) + (dy - 4) * (dy - 4));
+        if (d1 <= moonR && d2 > moonR - 4) {
+          const isHighlight = d1 > moonR - 4;
+          this.pRect(moonX + dx, moonY + dy, 2, 2, isHighlight ? '#fecdd3' : '#f87171');
+        }
+      }
+    }
+
+    // Distant Far Forest Silhouette (Parallax Layer 0)
+    const farOffsetX = -(cameraX * 0.12);
+    const farTreeSpacing = 70;
+    const farTreeStart = Math.floor(farOffsetX % farTreeSpacing) - farTreeSpacing;
+
+    for (let tx = farTreeStart; tx < width + farTreeSpacing; tx += farTreeSpacing) {
+      const treeH = 180 + Math.sin(tx * 0.05) * 40;
+      const trunkW = 12;
+      const treeBaseY = height - 40;
+
+      // Far tree trunk
+      this.pRect(tx, treeBaseY - treeH, trunkW, treeH, '#090312');
+      // Far canopy foliage puffs
+      for (let layer = 0; layer < 4; layer++) {
+        const cw = 44 - layer * 8;
+        const ch = 22;
+        const cy = treeBaseY - treeH - layer * 18;
+        this.pRect(tx + trunkW / 2 - cw / 2, cy, cw, ch, '#0c051a');
+      }
+    }
+
+    // Midground Gnarled Forbidden Forest Trees (Parallax Layer 1)
+    const midOffsetX = -(cameraX * 0.25);
+    const midTreeSpacing = 160;
+    const midTreeStart = Math.floor(midOffsetX % midTreeSpacing) - midTreeSpacing;
+
+    for (let tx = midTreeStart; tx < width + midTreeSpacing; tx += midTreeSpacing) {
+      const trunkW = 24;
+      const treeTopY = 90 + Math.sin(tx * 0.03) * 30;
+      const trunkH = height - treeTopY;
+
+      // Ancient gnarled trunk
+      this.pRect(tx, treeTopY, trunkW, trunkH, '#0d0417');
+      this.pRect(tx + 2, treeTopY, 3, trunkH, '#200b38'); // Highlight bark ridge
+      this.pRect(tx + trunkW - 4, treeTopY, 4, trunkH, '#06010a'); // Shadow ridge
+
+      // Twisted bare branches reaching out
+      const b1Y = treeTopY + 30;
+      this.pRect(tx - 28, b1Y - 14, 30, 6, '#0d0417');
+      this.pRect(tx - 44, b1Y - 26, 18, 5, '#0d0417');
+      this.pRect(tx - 56, b1Y - 34, 14, 4, '#0d0417');
+
+      const b2Y = treeTopY + 70;
+      this.pRect(tx + trunkW, b2Y - 10, 36, 6, '#0d0417');
+      this.pRect(tx + trunkW + 32, b2Y - 24, 20, 5, '#0d0417');
+      this.pRect(tx + trunkW + 48, b2Y - 36, 14, 4, '#0d0417');
+
+      // Gnarled ground roots
+      this.pRect(tx - 18, height - 30, 20, 16, '#0d0417');
+      this.pRect(tx + trunkW, height - 26, 22, 14, '#0d0417');
+
+      // Blinking Glowing Creature / Monster Eyes in the Darkness!
+      const eyeHash = Math.abs(Math.sin(tx * 19 + 7));
+      if (eyeHash > 0.45) {
+        const eyeX = tx + (eyeHash > 0.7 ? -20 : trunkW + 12);
+        const eyeY = treeTopY + 45 + (eyeHash * 60) % 100;
+        
+        // Blink timer
+        const blinkCycle = Math.floor(gameTime * 2 + tx) % 5;
+        const isBlinking = blinkCycle === 0;
+
+        if (!isBlinking) {
+          const eyeColor = eyeHash > 0.8 ? '#ef4444' : eyeHash > 0.6 ? '#facc15' : '#06b6d4';
+          const glowColor = eyeHash > 0.8 ? 'rgba(239,68,68,0.4)' : eyeHash > 0.6 ? 'rgba(250,204,21,0.4)' : 'rgba(6,182,212,0.4)';
+          
+          // Eye glow
+          this.pRect(eyeX - 1, eyeY - 1, 9, 5, glowColor);
+          // Left Eye
+          this.pRect(eyeX, eyeY, 2, 3, eyeColor);
+          // Right Eye
+          this.pRect(eyeX + 5, eyeY, 2, 3, eyeColor);
+          // Slit pupils
+          this.pRect(eyeX + 1, eyeY + 1, 1, 1, '#000000');
+          this.pRect(eyeX + 6, eyeY + 1, 1, 1, '#000000');
+        }
+      }
+
+      // Hanging moss / vines from branches
+      const vineX = tx - 16;
+      const vineY = b1Y - 8;
+      for (let vy = 0; vy < 36; vy += 6) {
+        const vineSway = Math.sin(gameTime * 2 + tx + vy) * 2;
+        this.pRect(vineX + vineSway, vineY + vy, 2, 5, '#1e1b4b');
+      }
+    }
+
+    // Creeping Rolling Low Ground Fog (Parallax layers)
+    const fogGrad = this.ctx.createLinearGradient(0, height - 120, 0, height);
+    fogGrad.addColorStop(0, 'rgba(49, 14, 84, 0)');
+    fogGrad.addColorStop(0.5, 'rgba(88, 28, 135, 0.25)');
+    fogGrad.addColorStop(1, 'rgba(30, 9, 48, 0.65)');
+    this.ctx.fillStyle = fogGrad;
+    this.ctx.fillRect(0, height - 120, width, 120);
+
+    // Drifting magical forest fireflies / glowing spores
+    for (let i = 0; i < 24; i++) {
+      const fx = (i * 71 + gameTime * 20 + Math.sin(gameTime * 1.5 + i) * 30) % width;
+      const fy = height - 60 - ((i * 37 + gameTime * 18) % (height * 0.7));
+      const fAlpha = Math.sin(gameTime * 2.5 + i * 2) * 0.4 + 0.6;
+      const sporeColor = i % 3 === 0 ? `rgba(232, 121, 249, ${fAlpha})` : `rgba(167, 139, 250, ${fAlpha})`;
+      this.pRect(fx, fy, 2, 2, sporeColor);
+      if (i % 4 === 0) {
+        this.pRect(fx - 1, fy, 4, 2, `rgba(250, 204, 21, ${fAlpha * 0.4})`);
+      }
+    }
+
+    this.ctx.restore();
+  }
+
+  // Draw sky and moon with clouds (Default Theme)
   public drawSky(
     width: number,
     height: number,
@@ -705,7 +1026,7 @@ export class PixelRenderer {
 
     // Off-screen warning indicator
     if (owl.warningTimer > 0) {
-      const warnX = 800 - 32;
+      const warnX = (this.ctx.canvas ? this.ctx.canvas.width : 800) - 32;
       const warnY = Math.max(30, Math.min(500, owl.warningY));
       const blink = Math.floor(gameTime * 10) % 2 === 0;
 

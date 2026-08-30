@@ -1,6 +1,8 @@
 export type CharacterId = 'harry' | 'ron' | 'hermione';
 
-export type GameState = 'LOADING' | 'CHARACTER_SELECT' | 'CHARACTER_LOADING' | 'MENU' | 'PLAYING' | 'PAUSED' | 'GAMEOVER' | 'VICTORY';
+export type BackgroundThemeId = 'dark_clouds' | 'dark_dungeon' | 'creepy_forest';
+
+export type GameState = 'LOADING' | 'CHARACTER_SELECT' | 'BACKGROUND_SELECT' | 'INSTRUCTIONS_MAP' | 'CHARACTER_LOADING' | 'MENU' | 'PLAYING' | 'PAUSED' | 'GAMEOVER' | 'VICTORY';
 
 export type PlayerAction = 'IDLE' | 'RUNNING' | 'JUMPING' | 'FALLING' | 'HURT';
 

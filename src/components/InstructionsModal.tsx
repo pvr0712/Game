@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShieldAlert, Award, ArrowUp, Sparkles } from 'lucide-react';
+import { X, ShieldAlert, Award, ArrowUp, ArrowDown, Compass, Heart } from 'lucide-react';
 
 interface InstructionsModalProps {
   isOpen: boolean;
@@ -10,118 +10,125 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border-4 border-amber-600 rounded-lg max-w-lg w-full p-5 sm:p-6 shadow-2xl relative font-pixel text-slate-200 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+      {/* Old Marauder's Map Parchment Container */}
+      <div className="bg-[#f4e4bc] border-[6px] border-[#5c3717] rounded-lg max-w-lg w-full p-4 sm:p-6 shadow-[0_0_40px_rgba(0,0,0,0.9),inset_0_0_50px_rgba(139,69,19,0.3)] relative font-pixel text-[#3e2410] flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto">
         
+        {/* Parchment background texture */}
+        <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#8b4513_1px,transparent_1px)] [background-size:16px_16px]" />
+
+        {/* Ornate Corner Accents */}
+        <div className="absolute top-2 left-2 text-xs text-[#8b4513] font-mono pointer-events-none font-bold">┌───</div>
+        <div className="absolute top-2 right-2 text-xs text-[#8b4513] font-mono pointer-events-none font-bold">───┐</div>
+        <div className="absolute bottom-2 left-2 text-xs text-[#8b4513] font-mono pointer-events-none font-bold">└───</div>
+        <div className="absolute bottom-2 right-2 text-xs text-[#8b4513] font-mono pointer-events-none font-bold">───┘</div>
+
         {/* Header */}
-        <div className="flex items-center justify-between border-b-2 border-amber-700/60 pb-3">
-          <h2 className="text-sm sm:text-base text-amber-400 font-bold flex items-center gap-2">
-            ⚡ HOGWARTS ESCAPE GUIDE
-          </h2>
+        <div className="flex items-center justify-between border-b-2 border-[#8b4513]/40 pb-2 relative z-10">
+          <div className="flex flex-col">
+            <span className="text-[7.5px] text-[#783e15] uppercase tracking-widest font-bold">
+              ✧ MARAUDER'S ESCAPE GUIDE ✧
+            </span>
+            <h2 className="text-xs sm:text-sm text-[#3a1b06] font-bold flex items-center gap-1.5">
+              <Compass className="w-4 h-4 text-[#8b4513]" />
+              <span>THE HOGWARTS PARCHMENT MAP</span>
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded cursor-pointer"
+            className="text-[#5c3717] hover:text-[#2c1810] p-1 hover:bg-[#e7d1a1] rounded cursor-pointer border border-[#8b4513]/40 transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="space-y-4 text-[10px] sm:text-xs leading-relaxed">
+        <div className="space-y-3 text-[9px] sm:text-[10px] leading-relaxed relative z-10">
           
           {/* Goal */}
-          <div className="bg-slate-950 p-3 rounded border border-amber-800/80">
-            <div className="flex items-center gap-2 text-amber-300 font-bold mb-1">
-              <Award className="w-4 h-4 text-yellow-400" />
-              <span>THE GOAL: 100 POINTS</span>
+          <div className="bg-[#eedab0] p-2.5 rounded border border-[#8b4513]/60 shadow-xs">
+            <div className="flex items-center gap-1.5 text-[#3a1b06] font-bold mb-1">
+              <Award className="w-3.5 h-3.5 text-[#8b4513]" />
+              <span>THE GOAL: 100 GALLEON COINS</span>
             </div>
-            <p className="text-slate-300">
-              Guide Harry Potter across the castle battlements. Collect golden Galleon coins (+1 point each) to reach the maximum 100 points for the Hogwarts House Cup!
+            <p className="text-[#4a280e]">
+              Collect golden Galleons (+1 point each) scattered across castle battlements. Reach 100 points to escape and win the Hogwarts House Cup!
             </p>
+          </div>
+
+          {/* Controls */}
+          <div className="bg-[#eedab0] p-2.5 rounded border border-[#8b4513]/60 shadow-xs">
+            <div className="text-[#3a1b06] font-bold mb-1.5 flex items-center gap-1">
+              <span>🕹️</span>
+              <span>SPELL & MOVEMENT CONTROLS</span>
+            </div>
+            <div className="grid grid-cols-2 gap-y-1 text-[8px] sm:text-[8.5px]">
+              <div><span className="font-bold text-[#2d1606]">A / D / ← →</span></div>
+              <div className="text-[#4a280e]">Move / Run</div>
+
+              <div><span className="font-bold text-[#2d1606]">W / ↑ / SPACE</span></div>
+              <div className="text-[#4a280e]">Jump High</div>
+
+              <div><span className="font-bold text-[#2d1606]">S + Jump</span></div>
+              <div className="text-[#4a280e]">Drop Through Floor</div>
+
+              <div><span className="font-bold text-[#2d1606]">F / X</span></div>
+              <div className="text-[#4a280e]">Cast Wand Spark</div>
+            </div>
           </div>
 
           {/* Escaping Lord Voldemort */}
-          <div className="bg-slate-950 p-3 rounded border border-emerald-900">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
-              <span>💀 LORD VOLDEMORT & SINISTER LAUGH</span>
+          <div className="bg-[#eedab0] p-2.5 rounded border border-[#8b4513]/60 shadow-xs">
+            <div className="flex items-center gap-1.5 text-[#1e3a1e] font-bold mb-0.5">
+              <span>💀</span>
+              <span>LORD VOLDEMORT & SINISTER LAUGH</span>
             </div>
-            <p className="text-slate-300">
-              Lord Voldemort prowls platforms wielding his bone wand. Whenever Harry encounters him, Voldemort unleashes his iconic mocking laugh! You must escape him by:
+            <p className="text-[#4a280e]">
+              Voldemort prowls on platforms casting dark magic with his mocking laugh. Evade him by leaping over him to higher castle balconies or dropping down!
             </p>
-            <ul className="list-disc list-inside mt-1 space-y-1 text-slate-400">
-              <li>Jumping high over him to reach safety</li>
-              <li>Climbing up to higher castle balconies</li>
-              <li>Dropping down to lower tiers (<kbd className="text-amber-300">S + Jump</kbd> on wood platforms)</li>
-            </ul>
           </div>
 
-          {/* Professor Dumbledore Extra HP Bonus */}
-          <div className="bg-slate-950 p-3 rounded border border-purple-900">
-            <div className="flex items-center gap-2 text-purple-300 font-bold mb-1">
-              <span>🧙‍♂️ PROFESSOR DUMBLEDORE (+1 HP BONUS)</span>
+          {/* Professor Dumbledore Bonus */}
+          <div className="bg-[#eedab0] p-2.5 rounded border border-[#8b4513]/60 shadow-xs">
+            <div className="flex items-center gap-1.5 text-[#5b21b6] font-bold mb-0.5">
+              <Heart className="w-3 h-3 text-red-600 fill-current" />
+              <span>PROFESSOR DUMBLEDORE (+1 HP BONUS)</span>
             </div>
-            <p className="text-slate-300">
-              Professor Dumbledore appears floating in the air and resting on high castle balconies, surrounded by a golden phoenix aura. Reach him to receive his blessing and restore <strong className="text-amber-300">+1 Extra HP</strong> (up to 5 max lives)!
+            <p className="text-[#4a280e]">
+              Dumbledore rests surrounded by his glowing phoenix aura. Touch his aura to restore <strong className="text-[#8b4513]">+1 Extra HP</strong> (up to 5 max lives)!
             </p>
           </div>
 
           {/* Dodging Owls */}
-          <div className="bg-slate-950 p-3 rounded border border-red-950">
-            <div className="flex items-center gap-2 text-red-400 font-bold mb-1">
-              <ShieldAlert className="w-4 h-4 text-red-500" />
-              <span>🦉 DODGING FLYING OWLS</span>
+          <div className="bg-[#eedab0] p-2.5 rounded border border-[#8b4513]/60 shadow-xs">
+            <div className="flex items-center gap-1.5 text-[#8b4513] font-bold mb-1">
+              <ShieldAlert className="w-3.5 h-3.5 text-red-700" />
+              <span>🦉 DODGING DELIVERY OWLS</span>
             </div>
-            <p className="text-slate-300">
-              Hogwarts delivery owls swoop rapidly across the sky. Watch for the red edge warning indicators:
-            </p>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div className="bg-slate-900 p-2 rounded border border-slate-700">
-                <div className="text-yellow-400 font-bold flex items-center gap-1">
-                  <ArrowUp className="w-3.5 h-3.5" /> JUMP OVER LOW OWLS
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <div className="bg-[#e2cc9b] p-1.5 rounded border border-[#8b4513]/40 text-[7.5px]">
+                <div className="font-bold text-[#2d1606] flex items-center gap-0.5">
+                  <ArrowUp className="w-2.5 h-2.5 text-red-700" /> JUMP LOW OWLS
                 </div>
-                <p className="text-[9px] text-slate-400 mt-1">
-                  Press <kbd className="text-amber-300">W / ↑ / SPACE</kbd> to leap cleanly over low flying owls!
-                </p>
+                <p className="text-[#4a280e] mt-0.5">Leap over low flying owls!</p>
               </div>
-              <div className="bg-slate-900 p-2 rounded border border-slate-700">
-                <div className="text-yellow-400 font-bold flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" /> PASS UNDER HIGH OWLS
+              <div className="bg-[#e2cc9b] p-1.5 rounded border border-[#8b4513]/40 text-[7.5px]">
+                <div className="font-bold text-[#2d1606] flex items-center gap-0.5">
+                  <ArrowDown className="w-2.5 h-2.5 text-emerald-800" /> RUN UNDER HIGH
                 </div>
-                <p className="text-[9px] text-slate-400 mt-1">
-                  High owls soar above your head safely. Run beneath them without jumping!
-                </p>
+                <p className="text-[#4a280e] mt-0.5">Run safely beneath high owls!</p>
               </div>
             </div>
           </div>
 
-          {/* Key Controls Table */}
-          <div className="bg-slate-950 p-3 rounded border border-slate-800">
-            <div className="text-amber-400 font-bold mb-2">⌨️ CONTROLS</div>
-            <div className="grid grid-cols-2 gap-y-1.5 text-[9px]">
-              <div><span className="text-amber-300">A / D</span> or <span className="text-amber-300">← / →</span></div>
-              <div className="text-slate-300">Move Left / Right</div>
-
-              <div><span className="text-amber-300">W / ↑ / SPACE</span></div>
-              <div className="text-slate-300">Jump</div>
-
-              <div><span className="text-amber-300">S + Jump</span></div>
-              <div className="text-slate-300">Drop Down Platform</div>
-
-              <div><span className="text-amber-300">F / X</span></div>
-              <div className="text-slate-300">Cast Wand Spark</div>
-
-              <div><span className="text-amber-300">P / ESC</span></div>
-              <div className="text-slate-300">Pause Game</div>
-            </div>
-          </div>
         </div>
 
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 active:scale-98 text-slate-950 font-bold rounded cursor-pointer transition text-xs"
+          className="w-full py-2 bg-gradient-to-r from-[#8b2500] via-[#a0360a] to-[#8b2500] hover:from-[#a0360a] hover:via-[#b8420e] hover:to-[#a0360a] text-yellow-100 font-extrabold text-[10px] sm:text-xs rounded border border-[#5c1800] shadow-md cursor-pointer active:scale-98 transition relative z-10"
         >
-          RETURN TO GAME
+          "MISCHIEF MANAGED" — RETURN TO GAME
         </button>
       </div>
     </div>

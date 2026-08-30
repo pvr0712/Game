@@ -9,10 +9,12 @@ import { InstructionsModal } from './InstructionsModal';
 import { LeaderboardModal } from './LeaderboardModal';
 import { LoadingScreen } from './LoadingScreen';
 import { CharacterSelectScreen } from './CharacterSelectScreen';
+import { BackgroundSelectScreen } from './BackgroundSelectScreen';
+import { MapInstructionsScreen } from './MapInstructionsScreen';
 import { CharacterLoadingScreen } from './CharacterLoadingScreen';
 import { OrientationPrompt } from './OrientationPrompt';
 import { soundManager } from '../audio/soundManager';
-import { CharacterId } from '../types';
+import { CharacterId, BackgroundThemeId } from '../types';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -64,6 +66,46 @@ export const GameCanvas: React.FC = () => {
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
   }, []);
+
+  // Dynamic Widescreen Canvas Resize (Edge-to-Edge Full Screen for PC & Mobile Landscape)
+  useEffect(() => {
+    const updateCanvasResolution = () => {
+      if (!containerRef.current || !canvasRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const clientWidth = rect.width || window.innerWidth;
+      const clientHeight = rect.height || window.innerHeight;
+      if (clientWidth <= 0 || clientHeight <= 0) return;
+
+      const baseHeight = 600;
+      const aspect = clientWidth / clientHeight;
+      const calculatedWidth = Math.max(800, Math.round(baseHeight * aspect));
+
+      const canvas = canvasRef.current;
+      if (canvas.width !== calculatedWidth || canvas.height !== baseHeight) {
+        canvas.width = calculatedWidth;
+        canvas.height = baseHeight;
+        engine.setCanvasDimensions(calculatedWidth, baseHeight);
+      }
+    };
+
+    updateCanvasResolution();
+    const observer = new ResizeObserver(() => {
+      updateCanvasResolution();
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', updateCanvasResolution);
+    window.addEventListener('orientationchange', updateCanvasResolution);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateCanvasResolution);
+      window.removeEventListener('orientationchange', updateCanvasResolution);
+    };
+  }, [engine]);
 
   const handleToggleFullscreen = async () => {
     try {
@@ -158,13 +200,18 @@ export const GameCanvas: React.FC = () => {
         engine.update(dt);
 
         // Render Everything
-        // 1. Sky & Twinkling Stars & Moon & Far Clouds
-        renderer.drawSky(canvas.width, canvas.height, engine.gameTime, engine.clouds, engine.cameraX);
+        // 1. Unified Dynamic Background (Dark Clouds, Dark Dungeon, or Creepy Forest)
+        renderer.drawBackground(
+          canvas.width,
+          canvas.height,
+          engine.gameTime,
+          engine.clouds,
+          engine.cameraX,
+          engine.spires,
+          engine.selectedBackground
+        );
 
-        // 2. Parallax Castle Architecture in Midground & Background Spires
-        renderer.drawCastleBackground(canvas.width, canvas.height, engine.cameraX, engine.spires, engine.gameTime);
-
-        // 3. Platforms & Archways
+        // 2. Platforms & Archways
         renderer.drawPlatforms(engine.platforms, engine.cameraX, engine.gameTime);
 
         // 4. Galleon Coins
@@ -224,7 +271,23 @@ export const GameCanvas: React.FC = () => {
 
   const handleCharacterSelect = (char: CharacterId) => {
     engine.setCharacter(char);
+    engine.gameState = 'BACKGROUND_SELECT';
+    setTick(t => t + 1);
+  };
+
+  const handleBackgroundSelect = (theme: BackgroundThemeId) => {
+    engine.setBackground(theme);
+    engine.gameState = 'INSTRUCTIONS_MAP';
+    setTick(t => t + 1);
+  };
+
+  const handleStartFromMapInstructions = () => {
     engine.gameState = 'CHARACTER_LOADING';
+    setTick(t => t + 1);
+  };
+
+  const handleBackToBackgroundSelect = () => {
+    engine.gameState = 'BACKGROUND_SELECT';
     setTick(t => t + 1);
   };
 
@@ -278,96 +341,117 @@ export const GameCanvas: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full flex flex-col items-center justify-between bg-slate-950 overflow-hidden select-none"
+      className="relative w-full h-full bg-slate-950 overflow-hidden select-none"
     >
-      {/* Top Score Board */}
-      <ScoreBoard
-        score={engine.score}
-        maxScore={engine.maxScore}
-        highScore={engine.highScore}
-        lives={engine.player.lives}
-        maxLives={engine.player.maxLives}
-        character={engine.player.character || engine.selectedCharacter}
-        onChangeCharacter={handleOpenCharacterSelect}
-        isPaused={engine.gameState === 'PAUSED'}
-        onTogglePause={handleTogglePause}
-        soundMuted={soundMuted}
-        bgmMuted={bgmMuted}
-        onToggleSound={handleToggleSound}
-        onToggleBgm={handleToggleBgm}
-        onOpenHelp={() => setIsHelpOpen(true)}
-        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={handleToggleFullscreen}
-      />
+      {/* 100% Full Screen Edge-to-Edge Canvas Area (No Letterboxing / Full Bleed) */}
+      <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-slate-950">
+        
+        {/* Native Scaled Widescreen Pixel Canvas */}
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={600}
+          className="w-full h-full block select-none"
+          style={{ imageRendering: 'pixelated' }}
+        />
 
-      {/* Center 2D Pixel Canvas Game Screen - 100% Full Screen Viewport */}
-      <main className="relative flex-1 w-full h-full flex items-center justify-center bg-slate-950 overflow-hidden">
-        <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-slate-950">
-          
-          {/* Native High-Resolution 800x600 Scaled Pixel Canvas (Full Screen) */}
-          <canvas
-            ref={canvasRef}
-            width={800}
-            height={600}
-            className="w-full h-full object-contain block select-none"
-            style={{ imageRendering: 'pixelated' }}
+        {/* 1. Hogwarts Pixel Escape Loading Screen */}
+        {engine.gameState === 'LOADING' && (
+          <LoadingScreen onComplete={handleLoadingComplete} />
+        )}
+
+        {/* 2. Character Selection Screen (Harry, Ron, Hermione) */}
+        {engine.gameState === 'CHARACTER_SELECT' && (
+          <CharacterSelectScreen
+            initialCharacter={engine.selectedCharacter}
+            onSelectCharacter={handleCharacterSelect}
+            onGoToMenu={handleGoToMenu}
           />
+        )}
 
-          {/* 1. Hogwarts Pixel Escape Loading Screen */}
-          {engine.gameState === 'LOADING' && (
-            <LoadingScreen onComplete={handleLoadingComplete} />
-          )}
-
-          {/* 2. Character Selection Screen (Harry, Ron, Hermione) */}
-          {engine.gameState === 'CHARACTER_SELECT' && (
-            <CharacterSelectScreen
-              initialCharacter={engine.selectedCharacter}
-              onSelectCharacter={handleCharacterSelect}
-              onGoToMenu={handleGoToMenu}
-            />
-          )}
-
-          {/* 3. Character-Specific Animated Pixel Loading Screen */}
-          {engine.gameState === 'CHARACTER_LOADING' && (
-            <CharacterLoadingScreen
-              character={engine.player.character || engine.selectedCharacter}
-              onComplete={handleCharacterLoadingComplete}
-            />
-          )}
-
-          {/* 4. Menu Overlay */}
-          {engine.gameState === 'MENU' && (
-            <MenuOverlay
-              character={engine.player.character || engine.selectedCharacter}
-              onStartGame={handleStartGame}
-              onOpenCharacterSelect={handleOpenCharacterSelect}
-              onOpenHelp={() => setIsHelpOpen(true)}
-              onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
-              highScore={engine.highScore}
-            />
-          )}
-
-          {/* 5. Game Over / Pause / Victory Modal */}
-          <GameOverModal
-            gameState={engine.gameState}
-            score={engine.score}
-            maxScore={engine.maxScore}
-            highScore={engine.highScore}
+        {/* 2.5. Background Selection Screen (Clouds, Dungeon, Forest) */}
+        {engine.gameState === 'BACKGROUND_SELECT' && (
+          <BackgroundSelectScreen
             character={engine.player.character || engine.selectedCharacter}
-            lastComparison={engine.lastComparison}
-            leaderboard={engine.leaderboard}
-            onRestart={handleRestart}
-            onResume={() => {
-              engine.gameState = 'PLAYING';
-              setTick(t => t + 1);
-            }}
-            onExitGame={handleExitToMenu}
-            onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
-            onOpenCharacterSelect={handleOpenCharacterSelect}
+            initialTheme={engine.selectedBackground}
+            onSelectBackground={handleBackgroundSelect}
+            onBackToCharacterSelect={handleOpenCharacterSelect}
           />
-        </div>
-      </main>
+        )}
+
+        {/* 2.75. Marauder's Old Map Instructions Page (Pixel Form) */}
+        {engine.gameState === 'INSTRUCTIONS_MAP' && (
+          <MapInstructionsScreen
+            character={engine.player.character || engine.selectedCharacter}
+            backgroundTheme={engine.selectedBackground}
+            onStartGame={handleStartFromMapInstructions}
+            onBackToBackgroundSelect={handleBackToBackgroundSelect}
+            onBackToCharacterSelect={handleOpenCharacterSelect}
+          />
+        )}
+
+        {/* 3. Character-Specific Animated Pixel Loading Screen */}
+        {engine.gameState === 'CHARACTER_LOADING' && (
+          <CharacterLoadingScreen
+            character={engine.player.character || engine.selectedCharacter}
+            onComplete={handleCharacterLoadingComplete}
+          />
+        )}
+
+        {/* 4. Menu Overlay */}
+        {engine.gameState === 'MENU' && (
+          <MenuOverlay
+            character={engine.player.character || engine.selectedCharacter}
+            onStartGame={handleStartGame}
+            onOpenCharacterSelect={handleOpenCharacterSelect}
+            onOpenHelp={() => setIsHelpOpen(true)}
+            onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+            highScore={engine.highScore}
+          />
+        )}
+
+        {/* 5. Game Over / Pause / Victory Modal */}
+        <GameOverModal
+          gameState={engine.gameState}
+          score={engine.score}
+          maxScore={engine.maxScore}
+          highScore={engine.highScore}
+          character={engine.player.character || engine.selectedCharacter}
+          lastComparison={engine.lastComparison}
+          leaderboard={engine.leaderboard}
+          onRestart={handleRestart}
+          onResume={() => {
+            engine.gameState = 'PLAYING';
+            setTick(t => t + 1);
+          }}
+          onExitGame={handleExitToMenu}
+          onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+          onOpenCharacterSelect={handleOpenCharacterSelect}
+        />
+      </div>
+
+      {/* Floating Top Hogwarts Score & HUD Overlay */}
+      <div className="absolute top-0 left-0 right-0 z-20 pointer-events-auto">
+        <ScoreBoard
+          score={engine.score}
+          maxScore={engine.maxScore}
+          highScore={engine.highScore}
+          lives={engine.player.lives}
+          maxLives={engine.player.maxLives}
+          character={engine.player.character || engine.selectedCharacter}
+          onChangeCharacter={handleOpenCharacterSelect}
+          isPaused={engine.gameState === 'PAUSED'}
+          onTogglePause={handleTogglePause}
+          soundMuted={soundMuted}
+          bgmMuted={bgmMuted}
+          onToggleSound={handleToggleSound}
+          onToggleBgm={handleToggleBgm}
+          onOpenHelp={() => setIsHelpOpen(true)}
+          onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
+        />
+      </div>
 
       {/* Bottom Floating Virtual Controls (Overlaid for Mobile & Touch Screen) */}
       <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none pb-1 sm:pb-2">

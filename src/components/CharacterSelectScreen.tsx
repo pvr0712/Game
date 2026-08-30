@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CharacterId } from '../types';
 import { CharacterPreviewCanvas } from './CharacterPreviewCanvas';
-import { Play, Sparkles, Check, Wand2, Home } from 'lucide-react';
+import { Sparkles, Check, Wand2, Home, ArrowRight } from 'lucide-react';
 import { soundManager } from '../audio/soundManager';
 
 interface CharacterSelectScreenProps {
@@ -102,7 +102,7 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-center gap-2 text-amber-400 text-[10px] sm:text-xs tracking-widest uppercase">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>CHOOSE YOUR HERO</span>
+            <span>STEP 1: CHOOSE YOUR HERO</span>
             <Sparkles className="w-3.5 h-3.5" />
           </div>
           <h1 className="text-base sm:text-xl text-yellow-300 font-bold drop-shadow-md">
@@ -162,7 +162,7 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
                   </div>
                 </div>
 
-                {/* Select & Play button inside card */}
+                {/* Select & Continue button inside card */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -175,22 +175,22 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
                       : 'bg-slate-800 text-slate-200 hover:bg-amber-600 hover:text-white'
                   }`}
                 >
-                  <Play className="w-2.5 h-2.5 fill-current" />
-                  <span>{isChosen ? `PLAY AS ${char.name.split(' ')[0].toUpperCase()}` : 'SELECT & PLAY'}</span>
+                  <span>{isChosen ? `SELECT ${char.name.split(' ')[0].toUpperCase()}` : 'CHOOSE'}</span>
+                  <ArrowRight className="w-2.5 h-2.5 stroke-[3]" />
                 </button>
               </div>
             );
           })}
         </div>
 
-        {/* Start Game with Selected Character & Menu Option */}
+        {/* Next Step Button & Menu Option */}
         <div className="w-full max-w-md flex flex-col gap-2 mt-1">
           <button
             onClick={handleConfirm}
             className="w-full py-3 bg-gradient-to-r from-red-700 via-amber-600 to-red-700 hover:from-red-600 hover:via-amber-500 hover:to-red-600 text-yellow-100 font-bold text-xs sm:text-sm rounded border-2 border-amber-400 shadow-xl cursor-pointer active:scale-95 transition flex items-center justify-center gap-2 tracking-wide"
           >
-            <Play className="w-4 h-4 fill-current" />
-            <span>START GAME AS {activeChar.name.toUpperCase()}</span>
+            <span>NEXT: CHOOSE BACKGROUND THEME</span>
+            <ArrowRight className="w-4 h-4 stroke-[3]" />
           </button>
 
           {onGoToMenu && (
@@ -199,7 +199,7 @@ export const CharacterSelectScreen: React.FC<CharacterSelectScreenProps> = ({
               className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-yellow-200 text-[10px] sm:text-xs rounded border border-amber-600/50 cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5"
             >
               <Home className="w-3 h-3 text-amber-400" />
-              <span>GO TO MAIN MENU AS {activeChar.name.split(' ')[0].toUpperCase()}</span>
+              <span>GO TO MAIN MENU</span>
             </button>
           )}
           
